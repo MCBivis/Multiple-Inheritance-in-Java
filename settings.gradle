@@ -1,0 +1,4 @@
+rootProject.name = 'Multiple-Inheritance-in-Java'
+include 'mi'
+include 'api'
+
