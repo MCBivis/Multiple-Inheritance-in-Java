@@ -121,4 +121,25 @@ public final class MultipleInheritanceRuntime {
             throw new IllegalStateException("setNext(" + rootInterface.getSimpleName() + ") not found on " + node.getClass(), e);
         }
     }
+
+    public static Object callParentMethod(
+            Class<?> currentClass,
+            Class<?> parentClass,
+            String methodName,
+            Class<?> rootInterface
+    ) {
+        try {
+            Constructor<?> ctor = parentClass.getDeclaredConstructor();
+            ctor.setAccessible(true);
+
+            Object parentInstance = ctor.newInstance();
+
+            java.lang.reflect.Method method = parentClass.getMethod(methodName);
+
+            return method.invoke(parentInstance);
+
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot call parent method", e);
+        }
+    }
 }
