@@ -14,9 +14,18 @@ public class DogCat extends IAnimalRoot {
         return "DogCat(" + nextGetName() + ")";
     }
 
-    @CallParent(Cat.class) 
     @Override
     public String speak() {
+        return nextSpeak();
+    }
+
+    @CallParent(Cat.class)
+    public String getNameCat() {
+        return "DogCat(" + nextGetName() + ")";
+    }
+
+    @CallParent(Cat.class)
+    public String speakCat() {
         return nextSpeak();
     }
 }

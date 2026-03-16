@@ -92,16 +92,32 @@ public class RootProcessor extends AbstractProcessor {
                 w.write("    /** call-next-method: следующая реализация по MRO или указанному родителю. */\n");
                 w.write("    public " + nextSig + " {\n");
                 w.write("        try {\n");
-                w.write("            java.lang.reflect.Method m = this.getClass().getMethod(\"" + methodName + "\");\n");
-                w.write("            CallParent ann = m.getAnnotation(CallParent.class);\n");
+                w.write("            Class<?>[] paramTypes = new Class<?>[] {" + methodParamTypes(method) + "};\n");
+                w.write("            String callerName = java.lang.StackWalker.getInstance(java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE)\n");
+                w.write("                .walk(s -> s.skip(1)\n");
+                w.write("                    .filter(f -> !f.getMethodName().startsWith(\"next\"))\n");
+                w.write("                    .findFirst()\n");
+                w.write("                    .map(java.lang.StackWalker.StackFrame::getMethodName)\n");
+                w.write("                    .orElse(null));\n");
+                w.write("\n");
+                w.write("            CallParent ann = null;\n");
+                w.write("            if (callerName != null) {\n");
+                w.write("                for (java.lang.reflect.Method cm : this.getClass().getMethods()) {\n");
+                w.write("                    if (cm.getName().equals(callerName)) {\n");
+                w.write("                        ann = cm.getAnnotation(CallParent.class);\n");
+                w.write("                        if (ann != null) break;\n");
+                w.write("                    }\n");
+                w.write("                }\n");
+                w.write("            }\n");
+                w.write("\n");
                 w.write("            if (ann != null) {\n");
                 w.write("                Class<?> parent = ann.value();\n");
-                w.write("                java.lang.reflect.Method pm = parent.getMethod(\"" + methodName + "\");\n");
+                w.write("                java.lang.reflect.Method pm = parent.getMethod(\"" + methodName + "\", paramTypes);\n");
                 w.write("                Object inst = parent.getDeclaredConstructor().newInstance();\n");
                 if (isVoid) {
-                    w.write("                pm.invoke(inst);\n");
+                    w.write("                pm.invoke(inst" + (args.isEmpty() ? "" : ", " + args) + ");\n");
                 } else {
-                    w.write("                return (" + returnType + ") pm.invoke(inst);\n");
+                    w.write("                return (" + returnType + ") pm.invoke(inst" + (args.isEmpty() ? "" : ", " + args) + ");\n");
                 }
                 w.write("            }\n");
                 w.write("        } catch (Exception e) {\n");
@@ -165,6 +181,18 @@ public class RootProcessor extends AbstractProcessor {
             names.add(p.getSimpleName().toString());
         }
         return String.join(", ", names);
+    }
+
+    private String methodParamTypes(ExecutableElement method) {
+        List<? extends VariableElement> params = method.getParameters();
+        if (params.isEmpty()) return "";
+        List<String> parts = new ArrayList<>();
+        for (VariableElement p : params) {
+            TypeMirror t = p.asType();
+            // For reflection we need the raw runtime type; toString() is OK for primitives and declared types.
+            parts.add(t.toString() + ".class");
+        }
+        return String.join(", ", parts);
     }
 
     private String defaultReturn(String returnType) {
