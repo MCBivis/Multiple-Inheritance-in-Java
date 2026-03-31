@@ -10,7 +10,6 @@ public class Dog extends IAnimalRoot {
 
     @Override
     public String getName() {
-        // Вклад Dog + передача дальше(если есть)
         String base = (next != null) ? nextGetName() : "";
         return "Dog" + (base.isEmpty() ? "" : "+" + base);
     }
